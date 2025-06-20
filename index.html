@@ -7,13 +7,10 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
       background-color: #f4f4f9;
     }
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+    border-collapse: collapse;
     }
     th, td {
       padding: 10px;
@@ -24,10 +21,14 @@
       background-color: #4CAF50;
       color: white;
     }
+    div{
+    display: grid;
+    justify-content: center;
+    }
   </style>
 </head>
 <body>
-
+<div>
   <h1>Tabela de Campeonato - Visualização</h1>
 
   <table id="tournamentTable">
@@ -45,7 +46,7 @@
       <!-- Linhas de times serão adicionadas aqui -->
     </tbody>
   </table>
-
+</div>
   <script>
     let teams = JSON.parse(localStorage.getItem('teams')) || [];
 
