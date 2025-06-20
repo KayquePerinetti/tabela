@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabela de Campeonato - Visualização</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Tabela de Campeonato - Visualização</h1>
+
+  <table id="tournamentTable">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Jogos</th>
+        <th>Vitórias</th>
+        <th>Empates</th>
+        <th>Derrotas</th>
+        <th>Pontos</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Linhas de times serão adicionadas aqui -->
+    </tbody>
+  </table>
+
+  <script>
+    let teams = JSON.parse(localStorage.getItem('teams')) || [];
+
+    function renderTable() {
+      const tbody = document.getElementById('tournamentTable').getElementsByTagName('tbody')[0];
+      tbody.innerHTML = '';
+      teams.sort((a, b) => b.points - a.points);
+      teams.forEach(team => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${team.name}</td>
+          <td>${team.wins + team.draws + team.losses}</td>
+          <td>${team.wins}</td>
+          <td>${team.draws}</td>
+          <td>${team.losses}</td>
+          <td>${team.points}</td>
+        `;
+      });
+    }
+
+    window.addEventListener('storage', () => {
+      teams = JSON.parse(localStorage.getItem('teams')) || [];
+      renderTable();
+    });
+
+    renderTable();
+  </script>
+
+</body>
+</html>
