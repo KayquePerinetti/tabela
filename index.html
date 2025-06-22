@@ -1,89 +1,158 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Classificação</title>
-  <style>
-    html {
-    display: flex;
-    }
-    body {
-    margin: 0px;
-    display: grid;
-    justify-content: center;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Visualizar Classificação do Campeonato</title>
+<style>
+  body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-    }
-    h1 {
-    display: grid;
-    justify-items: center;
-    }
-    table {
+    margin: 20px;
+    background: #f9fafb;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  h2 {
+    margin-top: 40px;
+    text-align: center;
+    color: #007bff;
+  }
+  table {
     border-collapse: collapse;
-    }
-    th, td {
-      padding: 10px;
-      text-align: center;
-      border: 1px solid #ddd;
-    }
-    th {
-      background-color: #4CAF50;
-      color: white;
-    }
-    div{
-    display: grid;
-    justify-content: center;
-    }
-  </style>
+    margin: 0 auto 40px auto;
+    width: 90%;
+    max-width: 900px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: center;
+    user-select: none;
+  }
+  th {
+    background-color: #007bff;
+    color: white;
+  }
+</style>
 </head>
 <body>
-<div>
-  <h1>Classificação</h1>
+<!--<p style="text-align:center;">
+  <a href="index.html" target="_self">Voltar para Administração</a>
+</p>-->
 
-  <table id="tournamentTable">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Jogos</th>
-        <th>Vitórias</th>
-        <th>Empates</th>
-        <th>Derrotas</th>
-        <th>Pontos</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Linhas de times serão adicionadas aqui -->
-    </tbody>
-  </table>
-</div>
-  <script>
-    let teams = JSON.parse(localStorage.getItem('teams')) || [];
+<h1>Classificação Atual do Campeonato</h1>
 
-    function renderTable() {
-      const tbody = document.getElementById('tournamentTable').getElementsByTagName('tbody')[0];
-      tbody.innerHTML = '';
-      teams.sort((a, b) => b.points - a.points);
-      teams.forEach(team => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-          <td>${team.name}</td>
-          <td>${team.wins + team.draws + team.losses}</td>
-          <td>${team.wins}</td>
-          <td>${team.draws}</td>
-          <td>${team.losses}</td>
-          <td>${team.points}</td>
-        `;
-      });
+<h2>1ª Divisão</h2>
+<table id="table1">
+  <thead>
+    <tr>
+      <th>Posição</th>
+      <th>Nome</th>
+      <th>Pontos</th>
+      <th>Jogos</th>
+      <th>Vitórias</th>
+      <th>Empates</th>
+      <th>Derrotas</th>
+      <th>Gols</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h2>2ª Divisão</h2>
+<table id="table2">
+  <thead>
+    <tr>
+      <th>Posição</th>
+      <th>Nome</th>
+      <th>Pontos</th>
+      <th>Jogos</th>
+      <th>Vitórias</th>
+      <th>Empates</th>
+      <th>Derrotas</th>
+      <th>Gols</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let db;
+
+  // Abrir IndexedDB e carregar dados das duas divisões
+  const request = indexedDB.open("CampeonatoDB", 2);
+
+  request.onupgradeneeded = e => {
+    db = e.target.result;
+    // Caso banco não exista, cria object store
+    if (!db.objectStoreNames.contains('times')) {
+      const store = db.createObjectStore('times', { keyPath: 'id', autoIncrement: true });
+      store.createIndex('nome', 'nome', { unique: true });
     }
+  };
 
-    window.addEventListener('storage', () => {
-      teams = JSON.parse(localStorage.getItem('teams')) || [];
-      renderTable();
-    });
+  request.onsuccess = e => {
+    db = e.target.result;
+    carregarTabela(1);
+    carregarTabela(2);
+  };
 
-    renderTable();
-  </script>
+  request.onerror = e => {
+    alert("Erro ao abrir banco: " + e.target.errorCode);
+  };
+
+  function calculaPontosJogos(time) {
+    const pontos = time.vitorias * 3 + time.empates;
+    const jogos = time.vitorias + time.empates + time.derrotas;
+    return { pontos, jogos };
+  }
+
+  function carregarTabela(divisao) {
+    const tbody = document.querySelector(`#table${divisao} tbody`);
+    tbody.innerHTML = '';
+
+    const transaction = db.transaction(['times'], 'readonly');
+    const store = transaction.objectStore('times');
+
+    let times = [];
+    store.openCursor().onsuccess = e => {
+      const cursor = e.target.result;
+      if (cursor) {
+        if (cursor.value.divisao === divisao) {
+          times.push(cursor.value);
+        }
+        cursor.continue();
+      } else {
+        // Ordenar times na divisão
+        times.sort((a,b) => {
+          const aPts = a.vitorias*3 + a.empates;
+          const bPts = b.vitorias*3 + b.empates;
+          if(bPts !== aPts) return bPts - aPts;
+          return b.gols - a.gols;
+        });
+
+        times.forEach((time, i) => {
+          const { pontos, jogos } = calculaPontosJogos(time);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${time.nome}</td>
+            <td>${pontos}</td>
+            <td>${jogos}</td>
+            <td>${time.vitorias}</td>
+            <td>${time.empates}</td>
+            <td>${time.derrotas}</td>
+            <td>${time.gols}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    };
+  }
+</script>
 
 </body>
 </html>
