@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Classificação Futebol</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+body{
+    font-family: Arial;
+    background:#f2f2f2;
+    padding:20px;
+}
+
+h1{text-align:center;}
+
+button{
+    padding:8px;
+    margin:4px;
+    cursor:pointer;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    margin-top:20px;
+}
+
+th,td{
+    border:1px solid #ccc;
+    text-align:center;
+    padding:6px;
+}
+
+th{
+    background:#222;
+    color:#fff;
+}
+
+.top1{background:#b9f6c0;}
+.last3{background:#ffb3b3;}
+
+input{
+    width:70px;
+    text-align:center;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Classificação do Campeonato</h1>
+
+<button onclick="loginAdmin()">Entrar Admin</button>
+<button onclick="logoutAdmin()">Sair Admin</button>
+<button onclick="addPlayer()">Adicionar Jogador</button>
+<button onclick="downloadPDF()">Baixar PDF</button>
+
+<table>
+<thead>
+<tr>
+<th>Pos</th>
+<th>Nome</th>
+<th>Pontos</th>
+<th>Jogos</th>
+<th>Vitórias</th>
+<th>Derrotas</th>
+<th>Idade</th>
+<th>Ações</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+
+</div>
+
+<script>
+
+let admin = false;
+
+let data = JSON.parse(localStorage.getItem("campeonato")) || [
+    {nome:"Time A", v:3, d:1, idade:30},
+    {nome:"Time B", v:2, d:2, idade:25},
+    {nome:"Time C", v:1, d:3, idade:35},
+    {nome:"Time D", v:0, d:4, idade:28}
+];
+
+// ===== CÁLCULOS =====
+function pontos(t){
+    return t.v * 3; // vitórias valem 3
+}
+
+function jogos(t){
+    return t.v + t.d;
+}
+
+// ===== ORDENAÇÃO =====
+function ordenar(){
+    data.sort((a,b)=>{
+        if(pontos(b) !== pontos(a))
+            return pontos(b) - pontos(a);
+
+        // desempate: idade (mais velho ganha)
+        return b.idade - a.idade;
+    });
+}
+
+// ===== SALVAR =====
+function salvar(){
+    localStorage.setItem("campeonato", JSON.stringify(data));
+}
+
+// ===== RENDER =====
+function render(){
+    ordenar();
+    salvar();
+
+    let tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+
+    data.forEach((t,i)=>{
+
+        let tr = document.createElement("tr");
+
+        if(i === 0) tr.classList.add("top1");
+        if(i >= data.length - 3) tr.classList.add("last3");
+
+        tr.innerHTML = `
+            <td>${i+1}</td>
+
+            <td>
+                ${admin ? `<input value="${t.nome}" onchange="editar(${i},'nome',this.value)">` : t.nome}
+            </td>
+
+            <td>${pontos(t)}</td>
+            <td>${jogos(t)}</td>
+
+            <td>
+                ${admin ? `<input value="${t.v}" onchange="editar(${i},'v',this.value)">` : t.v}
+            </td>
+
+            <td>
+                ${admin ? `<input value="${t.d}" onchange="editar(${i},'d',this.value)">` : t.d}
+            </td>
+
+            <td>
+                ${admin ? `<input value="${t.idade}" onchange="editar(${i},'idade',this.value)">` : t.idade}
+            </td>
+
+            <td>
+                ${admin ? `<button onclick="deletar(${i})">Excluir</button>` : "-"}
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+// ===== EDITAR =====
+function editar(i,campo,valor){
+    data[i][campo] = isNaN(valor) ? valor : Number(valor);
+    render();
+}
+
+// ===== EXCLUIR =====
+function deletar(i){
+    if(confirm("Excluir jogador?")){
+        data.splice(i,1);
+        render();
+    }
+}
+
+// ===== ADICIONAR =====
+function addPlayer(){
+    if(!admin){
+        alert("Ative o modo admin!");
+        return;
+    }
+
+    let nome = prompt("Nome:");
+    let idade = Number(prompt("Idade:"));
+
+    data.push({
+        nome,
+        v:0,
+        d:0,
+        idade
+    });
+
+    render();
+}
+
+// ===== ADMIN LOGIN =====
+function loginAdmin(){
+    let senha = prompt("Senha admin:");
+    if(senha === "074708"){
+        admin = true;
+        alert("Modo admin ativado");
+        render();
+    } else {
+        alert("Senha incorreta");
+    }
+}
+
+// ===== LOGOUT ADMIN =====
+function logoutAdmin(){
+    admin = false;
+    alert("Modo admin desativado");
+    render();
+}
+
+// ===== PDF =====
+function downloadPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    ordenar();
+
+    let rows = data.map((t,i)=>[
+        i+1,
+        t.nome,
+        pontos(t),
+        jogos(t),
+        t.v,
+        t.d,
+        t.idade
+    ]);
+
+    doc.text("Classificação do Campeonato", 10, 10);
+
+    doc.autoTable({
+        head:[["Pos","Nome","Pts","Jgs","V","D","Idade"]],
+        body:rows
+    });
+
+    doc.save("classificacao.pdf");
+}
+
+// inicial
+render();
+
+</script>
+
+</body>
+</html>
