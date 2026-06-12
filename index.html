@@ -21,16 +21,36 @@ th,td{padding:10px;border:1px solid #ccc;text-align:center;}
 .rebaixado{background:#ffd6d6;}
 input{width:90%;}
 .admin-panel{display:none;margin:10px 0;padding:10px;background:#fff;border:1px solid #ccc;}
+div{
+    display: flex;
+    justify-content: center;
+}
+div img{
+    height: 200px;
+}
+.link{
+    margin: 10px;
+    color: black;
+    text-decoration: none;
+}
+.link:hover{
+    color: blue;
+    text-decoration: underline;
+}
 </style>
 </head>
 
 <body>
-
+<div>
+    <img src="logo.png" alt="Logo">
+</div>
 <h1>Classificação</h1>
 
 <button onclick="loginAdmin()">Entrar Admin</button>
 <button onclick="logoutAdmin()">Sair Admin</button>
 <button onclick="exportPDF()">Baixar PDF</button>
+<a class="link" href="REgulamento.pdf">Regulamento</a>
+<a class="link" href="https://kayqueperinetti.github.io/Campeoes/">Campões</a>
 
 <div class="admin-panel" id="adminPanel">
 <button onclick="addPlayer()">Adicionar Jogador</button>
